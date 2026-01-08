@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trader Journal</title>
   <meta name="theme-color" content="#000000" id="themeColorMeta" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -217,11 +218,27 @@ label {
   cursor: pointer;
   font-size: 24px;
 }
+
+.sync-status {
+  position: fixed;
+  top: 60px;
+  right: 14px;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  background: rgba(42, 92, 255, 0.2);
+  color: #2a5cff;
+  z-index: 100;
+}
 ```
 
   </style>
 </head>
 <body>
+
+  <!-- SYNC STATUS -->
+
+  <div id="syncStatus" class="sync-status hidden">☁️ Syncing...</div>
 
   <!-- TOP BAR -->
 
@@ -339,6 +356,13 @@ label {
   <div id="overlay" class="overlay hidden"></div>
 
   <script>
+    // Initialize Supabase
+    const { createClient } = supabase;
+    const supabaseClient = createClient(
+      'https://hsdodaomxamnoygjnvng.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzZG9kYW9teGFtbm95Z2pudm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4NTU3MjgsImV4cCI6MjA4MzQzMTcyOH0.UARnjJbFxHSjr5EFGunmLFgA-t2yjYNMHpUxlGH7XN0'
+    );
+
     const $ = id => document.getElementById(id);
 
     const symbols = { USD: "$", GBP: "£", NGN: "₦" };
@@ -354,6 +378,48 @@ label {
     let currentEntry = null;
     let deleteMode = false;
 
+    /* ---------- SUPABASE FUNCTIONS ---------- */
+    async function showSync(message = "☁️ Syncing...") {
+      const status = $("syncStatus");
+      status.innerText = message;
+      status.classList.remove("hidden");
+      setTimeout(() => status.classList.add("hidden"), 2000);
+    }
+
+    async function saveToSupabase(entry) {
+      try {
+        showSync("☁️ Saving to cloud...");
+        
+        const { data, error } = await supabaseClient
+          .from('journal_entries')
+          .insert([{
+            user_name: state.user,
+            account_name: currentAccount.name,
+            account_size: currentAccount.size,
+            leverage: currentAccount.leverage,
+            entry_date: entry.date,
+            result: entry.result,
+            pairs: entry.pairs,
+            entry_price: entry.entryPrice,
+            stop_loss: entry.stopLoss,
+            take_profit: entry.takeProfit,
+            style: entry.style,
+            reflection: entry.reflection,
+            pips: entry.pips,
+            percentage: entry.percentage,
+            updated_at: entry.updatedAt
+          }]);
+
+        if (error) throw error;
+        showSync("✅ Saved to cloud!");
+        return true;
+      } catch (error) {
+        console.error('Error saving to Supabase:', error);
+        showSync("⚠️ Saved locally only");
+        return false;
+      }
+    }
+
     /* ---------- UTIL ---------- */
     function save() {
       localStorage.setItem("appState", JSON.stringify(state));
@@ -366,16 +432,13 @@ label {
     }
 
     function applyTheme() {
-      // Remove both classes first
       document.body.classList.remove("light", "dark");
-
-      // Apply the correct class
+      
       if (state.theme === "light") {
         document.body.classList.add("light");
         $("themeToggle").innerText = "☀️";
         $("themeColorMeta").content = "#f4f6fb";
       } else {
-        // Dark mode is default
         $("themeToggle").innerText = "🌙";
         $("themeColorMeta").content = "#000000";
       }
@@ -513,7 +576,7 @@ label {
       });
       save();
       renderAccounts();
-
+      
       $("addAccountModal").classList.add("hidden");
       $("overlay").classList.add("hidden");
     };
@@ -597,7 +660,7 @@ label {
         pips: 0,
         percentage: 0
       };
-
+      
       state.accounts[currentAccount.index].entries.push(entry);
       save();
       openEdit(entry);
@@ -675,7 +738,7 @@ label {
       updateQuote();
     };
 
-    $("saveEntryBtn").onclick = () => {
+    $("saveEntryBtn").onclick = async () => {
       const entry = parseFloat(currentEntry.entryPrice);
       const tp = parseFloat(currentEntry.takeProfit);
       const sl = parseFloat(currentEntry.stopLoss);
@@ -696,7 +759,7 @@ label {
       const pips = currentEntry.result === "win" 
         ? Math.abs(tp - entry) 
         : Math.abs(entry - sl);
-
+      
       const percentage = ((pips / entry) * lev * 100).toFixed(2);
 
       currentEntry.pips = pips.toFixed(5);
@@ -709,6 +772,10 @@ label {
       }
 
       save();
+      
+      // Save to Supabase
+      await saveToSupabase(currentEntry);
+      
       openRead(currentEntry);
     };
 
