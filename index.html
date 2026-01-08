@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trader Journal</title>
+  <meta name="theme-color" content="#000000" id="themeColorMeta" />
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif;
+    }
+
+```
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+body.light {
+  background: #f4f6fb;
+  color: #000;
+}
+
+.hidden { display: none !important; }
+
+.topbar {
+  height: 52px;
+  padding: 0 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #222;
+}
+
+body.light .topbar {
+  border-bottom: 1px solid #ddd;
+}
+
+.screen { 
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+button {
+  padding: 12px;
+  margin-top: 10px;
+  width: 100%;
+  border-radius: 10px;
+  border: none;
+  background: #2a5cff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button.secondary { background: #444; }
+button.icon { width: auto; padding: 6px 10px; }
+button.danger { background: #c0392b; }
+
+input, textarea, select {
+  width: 100%;
+  padding: 12px;
+  margin: 6px 0 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+  background: #111;
+  color: #fff;
+}
+
+body.light input, body.light textarea, body.light select {
+  background: #eaeaea;
+  color: #000;
+}
+
+.account {
+  border: 1px solid #2a5cff;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.account.selected-delete {
+  border: 2px solid #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
+}
+
+.journal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.choice {
+  display: flex;
+  gap: 10px;
+}
+
+.choice button {
+  flex: 1;
+  background: transparent;
+  border: 2px solid #555;
+}
+
+.choice .win { color: #0a7a3b; }
+.choice .loss { color: #b00020; }
+
+.choice .selected.win { border-color: #0a7a3b; }
+.choice .selected.loss { border-color: #b00020; }
+
+body.light .choice .win { color: #065f2b; }
+body.light .choice .loss { color: #8a0018; }
+
+.micro-quote {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: -8px;
+  margin-bottom: 10px;
+}
+
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 100%;
+  background: #000;
+  padding: 20px;
+  z-index: 1001;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+}
+
+body.light .side-menu {
+  background: #f4f6fb;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.delete-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  font-size: 22px;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.delete-btn.active {
+  border: 3px solid #e74c3c;
+  background: rgba(231, 76, 60, 0.3);
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #111;
+  padding: 20px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  z-index: 1002;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+body.light .modal {
+  background: #fff;
+}
+
+input[type="number"] {
+  text-align: right;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.journal-days {
+  font-weight: bold;
+  color: #2a5cff;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.topbar > div {
+  cursor: pointer;
+  font-size: 24px;
+}
+```
+
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+
+  <div class="topbar hidden" id="topbar">
+    <div id="menuBtn">☰</div>
+    <div id="themeToggle">🌙</div>
+  </div>
+
+  <!-- LOGIN -->
+
+  <div id="login" class="screen">
+    <h2>Welcome to Trading Journal</h2>
+    <p>Enter your name to get started</p>
+    <input id="nameInput" placeholder="Enter your name" />
+    <button id="loginBtn">Get Started</button>
+  </div>
+
+  <!-- HOME -->
+
+  <div id="home" class="screen hidden">
+    <h2 id="welcomeName"></h2>
+    <p id="welcomeGreeting"></p>
+    <div id="accounts"></div>
+    <button id="addAccountBtn">+ Add Account</button>
+  </div>
+
+  <!-- ENTRIES -->
+
+  <div id="entries" class="screen hidden">
+    <button id="backHomeBtn" style="width: auto; padding-left: 20px; padding-right: 20px;">← Back</button>
+    <h3 id="entriesTitle"></h3>
+    <p id="journalDays" class="journal-days"></p>
+    <div id="entriesList"></div>
+    <button id="newEntryBtn">+ New Entry</button>
+    <button id="extraEntryBtn" class="secondary hidden">+ Add another entry for today</button>
+  </div>
+
+  <!-- JOURNAL READ -->
+
+  <div id="journalRead" class="screen hidden">
+    <div class="journal-header">
+      <button id="backEntriesBtn" style="width: auto; padding-left: 20px; padding-right: 20px; margin-top: 0;">← Back</button>
+      <button id="editEntryBtn" style="width: auto; background: transparent; border: 2px solid #2a5cff; color: #2a5cff; margin-top: 0; padding-left: 20px; padding-right: 20px;">✏️ Edit</button>
+    </div>
+    <div id="journalReadContent"></div>
+  </div>
+
+  <!-- JOURNAL EDIT -->
+
+  <div id="journalEdit" class="screen hidden">
+    <button id="cancelEditBtn" style="width: auto; padding-left: 20px; padding-right: 20px;">← Cancel</button>
+
+```
+<label>How was your trading day?</label>
+<div class="choice">
+  <button id="winBtn" class="win">🟢 Profitable</button>
+  <button id="lossBtn" class="loss">🔴 Loss</button>
+</div>
+
+<label>Pairs traded</label>
+<textarea id="editPairs" placeholder="e.g., EUR/USD, GBP/JPY"></textarea>
+<div id="pairsQuote" class="micro-quote hidden"></div>
+
+<label>Entry Price</label>
+<input id="editEntryPrice" type="number" placeholder="0.00000" step="any"/>
+
+<label>Stop Loss (SL)</label>
+<input id="editStopLoss" type="number" placeholder="0.00000" step="any"/>
+
+<label>Take Profit (TP)</label>
+<input id="editTakeProfit" type="number" placeholder="0.00000" step="any"/>
+
+<label>Trading style & confluences</label>
+<textarea id="editStyle" placeholder="Describe your trading approach..."></textarea>
+
+<label>Reflection</label>
+<textarea id="editReflection" placeholder="What did you learn? What could be improved?" style="min-height: 120px;"></textarea>
+
+<button id="saveEntryBtn">Save Entry</button>
+```
+
+  </div>
+
+  <!-- SIDE MENU -->
+
+  <div id="sideMenu" class="side-menu hidden">
+    <h3>Settings</h3>
+    <label>Currency</label>
+    <select id="currencySelect">
+      <option value="USD">$ USD</option>
+      <option value="GBP">£ GBP</option>
+      <option value="NGN">₦ NGN</option>
+    </select>
+    <button id="logoutBtn" class="danger" style="margin-top: 40px;">Logout</button>
+  </div>
+
+  <!-- ADD ACCOUNT MODAL -->
+
+  <div id="addAccountModal" class="modal hidden">
+    <h3>Add New Account</h3>
+    <label>Account Name</label>
+    <input id="modalAccountName" placeholder="e.g., Main Trading Account" />
+    <label>Account Size</label>
+    <input id="modalAccountSize" type="text" placeholder="e.g., 10000" />
+    <label>Leverage</label>
+    <input id="modalAccountLeverage" placeholder="e.g., 1:100 or 100" />
+    <button id="confirmAddAccount">Add Account</button>
+    <button id="cancelAddAccount" class="secondary">Cancel</button>
+  </div>
+
+  <!-- DELETE BUTTON -->
+
+<button id="deleteBtn" class="delete-btn hidden">🗑️</button>
+
+  <div id="overlay" class="overlay hidden"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const symbols = { USD: "$", GBP: "£", NGN: "₦" };
+
+    const state = JSON.parse(localStorage.getItem("appState")) || {
+      user: null,
+      theme: "dark",
+      currency: "USD",
+      accounts: []
+    };
+
+    let currentAccount = null;
+    let currentEntry = null;
+    let deleteMode = false;
+
+    /* ---------- UTIL ---------- */
+    function save() {
+      localStorage.setItem("appState", JSON.stringify(state));
+    }
+
+    function show(id) {
+      ["login", "home", "entries", "journalRead", "journalEdit"]
+        .forEach(s => $(s).classList.add("hidden"));
+      $(id).classList.remove("hidden");
+    }
+
+    function applyTheme() {
+      // Remove both classes first
+      document.body.classList.remove("light", "dark");
+
+      // Apply the correct class
+      if (state.theme === "light") {
+        document.body.classList.add("light");
+        $("themeToggle").innerText = "☀️";
+        $("themeColorMeta").content = "#f4f6fb";
+      } else {
+        // Dark mode is default
+        $("themeToggle").innerText = "🌙";
+        $("themeColorMeta").content = "#000000";
+      }
+    }
+
+    /* ---------- GREETING ---------- */
+    function greetingWithName(name) {
+      const hour = new Date().getHours();
+      let greeting, emoji;
+
+      if (hour < 12) {
+        greeting = "Good morning";
+        emoji = "🌞";
+      } else if (hour < 18) {
+        greeting = "Good afternoon";
+        emoji = "☀️";
+      } else {
+        greeting = "Good evening";
+        emoji = "🌙";
+      }
+
+      return `${emoji} ${greeting}, ${name}`;
+    }
+
+    /* ---------- INIT ---------- */
+    function init() {
+      applyTheme();
+
+      if (!state.user) {
+        show("login");
+        return;
+      }
+
+      $("topbar").classList.remove("hidden");
+      if (state.accounts.length > 0) {
+        $("deleteBtn").classList.remove("hidden");
+      }
+      $("welcomeName").innerText = state.user;
+      $("welcomeGreeting").innerText = greetingWithName(state.user);
+      $("currencySelect").value = state.currency;
+
+      renderAccounts();
+      show("home");
+    }
+
+    /* ---------- LOGIN ---------- */
+    $("loginBtn").onclick = () => {
+      const name = $("nameInput").value.trim();
+      if (!name) {
+        alert("Please enter your name");
+        return;
+      }
+      state.user = name;
+      save();
+      init();
+    };
+
+    $("nameInput").onkeypress = (e) => {
+      if (e.key === "Enter") $("loginBtn").click();
+    };
+
+    /* ---------- ACCOUNTS ---------- */
+    function renderAccounts() {
+      const wrap = $("accounts");
+      wrap.innerHTML = "";
+
+      if (state.accounts.length === 0) {
+        wrap.innerHTML = '<p style="opacity: 0.6; text-align: center; margin-top: 40px;">No accounts yet. Add your first trading account to get started.</p>';
+        $("deleteBtn").classList.add("hidden");
+        return;
+      }
+
+      $("deleteBtn").classList.remove("hidden");
+
+      state.accounts.forEach((acc, i) => {
+        const d = document.createElement("div");
+        d.className = "account";
+        if (deleteMode && acc._delete) d.classList.add("selected-delete");
+
+        d.innerHTML = `
+          <strong>${acc.name}</strong><br>
+          Size: ${symbols[state.currency]}${acc.size} | Lev: ${acc.leverage}
+        `;
+
+        d.onclick = () => {
+          if (deleteMode) {
+            acc._delete = !acc._delete;
+            renderAccounts();
+          } else {
+            openEntries(acc, i);
+          }
+        };
+
+        wrap.appendChild(d);
+      });
+    }
+
+    $("addAccountBtn").onclick = () => {
+      $("modalAccountName").value = "";
+      $("modalAccountSize").value = "";
+      $("modalAccountLeverage").value = "";
+      $("addAccountModal").classList.remove("hidden");
+      $("overlay").classList.remove("hidden");
+    };
+
+    $("confirmAddAccount").onclick = () => {
+      const name = $("modalAccountName").value.trim();
+      const sizeStr = $("modalAccountSize").value.trim();
+      const lev = $("modalAccountLeverage").value.trim();
+
+      if (!name) {
+        alert("Please enter an account name");
+        return;
+      }
+      if (!sizeStr) {
+        alert("Please enter an account size");
+        return;
+      }
+      if (!lev) {
+        alert("Please enter leverage");
+        return;
+      }
+
+      const size = parseFloat(sizeStr.replace(/[^\d.]/g, ""));
+      if (isNaN(size) || size <= 0) {
+        alert("Please enter a valid account size");
+        return;
+      }
+
+      state.accounts.push({ 
+        name, 
+        size, 
+        leverage: lev, 
+        entries: [] 
+      });
+      save();
+      renderAccounts();
+
+      $("addAccountModal").classList.add("hidden");
+      $("overlay").classList.add("hidden");
+    };
+
+    $("cancelAddAccount").onclick = () => {
+      $("addAccountModal").classList.add("hidden");
+      $("overlay").classList.add("hidden");
+    };
+
+    /* ---------- DELETE ---------- */
+    $("deleteBtn").onclick = () => {
+      if (deleteMode) {
+        state.accounts = state.accounts.filter(acc => !acc._delete);
+        save();
+      }
+      deleteMode = !deleteMode;
+      $("deleteBtn").classList.toggle("active", deleteMode);
+      renderAccounts();
+    };
+
+    /* ---------- ENTRIES ---------- */
+    function openEntries(acc, index) {
+      currentAccount = { ...acc, index };
+      $("entriesTitle").innerText = acc.name;
+
+      const uniqueDates = new Set(acc.entries.map(entry => entry.date));
+      const totalDays = uniqueDates.size;
+      $("journalDays").innerText = `${acc.name} | ${totalDays} ${totalDays === 1 ? 'day' : 'days'} journaled`;
+
+      renderEntries();
+      show("entries");
+    }
+
+    function renderEntries() {
+      const list = $("entriesList");
+      list.innerHTML = "";
+
+      const acc = state.accounts[currentAccount.index];
+
+      if (acc.entries.length === 0) {
+        list.innerHTML = '<p style="opacity: 0.6; text-align: center; margin-top: 40px;">No entries yet. Create your first journal entry.</p>';
+      }
+
+      const today = new Date().toDateString();
+      const todays = acc.entries.filter(e => e.date === today);
+
+      $("newEntryBtn").classList.toggle("hidden", todays.length > 0);
+      $("extraEntryBtn").classList.toggle("hidden", todays.length === 0);
+
+      acc.entries
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .forEach(e => {
+          const d = document.createElement("div");
+          d.className = "account";
+          d.innerHTML = `
+            ${e.date}
+            <span style="float:right">
+              ${new Date(e.updatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+            </span>
+          `;
+          d.onclick = () => openRead(e);
+          list.appendChild(d);
+        });
+    }
+
+    $("newEntryBtn").onclick = () => createEntry();
+    $("extraEntryBtn").onclick = () => createEntry();
+
+    function createEntry() {
+      const entry = {
+        id: Date.now(),
+        date: new Date().toDateString(),
+        updatedAt: Date.now(),
+        result: "",
+        pairs: "",
+        style: "",
+        reflection: "",
+        entryPrice: "",
+        stopLoss: "",
+        takeProfit: "",
+        pips: 0,
+        percentage: 0
+      };
+
+      state.accounts[currentAccount.index].entries.push(entry);
+      save();
+      openEdit(entry);
+    }
+
+    /* ---------- JOURNAL READ ---------- */
+    function openRead(e) {
+      currentEntry = e;
+      $("journalReadContent").innerHTML = `
+        <p><strong>${e.date}</strong></p>
+        <p style="font-size: 18px;">${e.result === "win" ? "🟢 Profitable" : e.result === "loss" ? "🔴 Loss" : "⚪ Not set"}</p>
+        <p><strong>Pairs</strong><br>${e.pairs || "-"}</p>
+        <p><strong>Entry Price</strong><br>${e.entryPrice || "-"}</p>
+        <p><strong>Stop Loss</strong><br>${e.stopLoss || "-"}</p>
+        <p><strong>Take Profit</strong><br>${e.takeProfit || "-"}</p>
+        <p><strong>Style & Confluences</strong><br>${e.style || "-"}</p>
+        <p><strong>Reflection</strong><br>${e.reflection || "-"}</p>
+        <p><strong>Pips:</strong> ${e.pips}</p>
+        <p><strong>Percentage:</strong> ${e.percentage}%</p>
+      `;
+      show("journalRead");
+    }
+
+    /* ---------- JOURNAL EDIT ---------- */
+    function openEdit(e) {
+      currentEntry = e;
+      $("editPairs").value = e.pairs;
+      $("editEntryPrice").value = e.entryPrice;
+      $("editStopLoss").value = e.stopLoss;
+      $("editTakeProfit").value = e.takeProfit;
+      $("editStyle").value = e.style;
+      $("editReflection").value = e.reflection;
+
+      $("winBtn").classList.toggle("selected", e.result === "win");
+      $("lossBtn").classList.toggle("selected", e.result === "loss");
+
+      updateQuote();
+      show("journalEdit");
+    }
+
+    function updateQuote() {
+      const q = $("pairsQuote");
+      if (!currentEntry.pairs || !currentEntry.result) {
+        q.classList.add("hidden");
+        return;
+      }
+      q.innerText = currentEntry.result === "win"
+        ? "Noted. Familiar market selection often supports good execution."
+        : "Market selection is often where the lesson begins.";
+      q.classList.remove("hidden");
+    }
+
+    /* ---------- EDIT EVENTS ---------- */
+    $("editPairs").oninput = e => {
+      currentEntry.pairs = e.target.value;
+      updateQuote();
+    };
+    $("editEntryPrice").oninput = e => currentEntry.entryPrice = e.target.value;
+    $("editStopLoss").oninput = e => currentEntry.stopLoss = e.target.value;
+    $("editTakeProfit").oninput = e => currentEntry.takeProfit = e.target.value;
+    $("editStyle").oninput = e => currentEntry.style = e.target.value;
+    $("editReflection").oninput = e => currentEntry.reflection = e.target.value;
+
+    $("winBtn").onclick = () => {
+      currentEntry.result = "win";
+      $("winBtn").classList.add("selected");
+      $("lossBtn").classList.remove("selected");
+      updateQuote();
+    };
+
+    $("lossBtn").onclick = () => {
+      currentEntry.result = "loss";
+      $("lossBtn").classList.add("selected");
+      $("winBtn").classList.remove("selected");
+      updateQuote();
+    };
+
+    $("saveEntryBtn").onclick = () => {
+      const entry = parseFloat(currentEntry.entryPrice);
+      const tp = parseFloat(currentEntry.takeProfit);
+      const sl = parseFloat(currentEntry.stopLoss);
+
+      if (isNaN(entry) || isNaN(tp) || isNaN(sl)) {
+        alert("Please enter valid numbers for entry, stop loss, and take profit");
+        return;
+      }
+
+      if (!currentEntry.result) {
+        alert("Please select win or loss");
+        return;
+      }
+
+      const acc = state.accounts[currentAccount.index];
+      const lev = parseFloat(acc.leverage.replace(/[^\d.]/g, ""));
+
+      const pips = currentEntry.result === "win" 
+        ? Math.abs(tp - entry) 
+        : Math.abs(entry - sl);
+
+      const percentage = ((pips / entry) * lev * 100).toFixed(2);
+
+      currentEntry.pips = pips.toFixed(5);
+      currentEntry.percentage = percentage;
+      currentEntry.updatedAt = Date.now();
+
+      const entryIndex = acc.entries.findIndex(e => e.id === currentEntry.id);
+      if (entryIndex !== -1) {
+        acc.entries[entryIndex] = currentEntry;
+      }
+
+      save();
+      openRead(currentEntry);
+    };
+
+    /* ---------- NAVIGATION ---------- */
+    $("backHomeBtn").onclick = () => {
+      renderAccounts();
+      show("home");
+    };
+    $("backEntriesBtn").onclick = () => {
+      renderEntries();
+      show("entries");
+    };
+    $("cancelEditBtn").onclick = () => openRead(currentEntry);
+    $("editEntryBtn").onclick = () => openEdit(currentEntry);
+
+    /* ---------- MENU ---------- */
+    $("menuBtn").onclick = () => {
+      $("sideMenu").classList.remove("hidden");
+      $("overlay").classList.remove("hidden");
+    };
+
+    $("overlay").onclick = () => {
+      $("sideMenu").classList.add("hidden");
+      $("addAccountModal").classList.add("hidden");
+      $("overlay").classList.add("hidden");
+    };
+
+    $("currencySelect").onchange = e => {
+      state.currency = e.target.value;
+      save();
+      renderAccounts();
+    };
+
+    $("logoutBtn").onclick = () => {
+      if (confirm("Are you sure you want to logout? This will clear all data.")) {
+        localStorage.clear();
+        location.reload();
+      }
+    };
+
+    $("themeToggle").onclick = () => {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      save();
+      applyTheme();
+    };
+
+    init();
+  </script>
+
+</body>
+</html>
