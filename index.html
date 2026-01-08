@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trader Journal</title>
   <meta name="theme-color" content="#000000" id="themeColorMeta" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -24,6 +23,17 @@ body {
 
 body.light {
   background: #f4f6fb;
+  color: #000;
+}
+
+body.light input,
+body.light textarea,
+body.light select,
+body.light .account,
+body.light .micro-quote,
+body.light #journalReadContent,
+body.light #entriesList,
+body.light label {
   color: #000;
 }
 
@@ -77,8 +87,9 @@ input, textarea, select {
 }
 
 body.light input, body.light textarea, body.light select {
-  background: #eaeaea;
+  background: #fff;
   color: #000;
+  border: 1px solid #ddd;
 }
 
 .account {
@@ -88,6 +99,12 @@ body.light input, body.light textarea, body.light select {
   margin-bottom: 10px;
   cursor: pointer;
   transition: all 0.2s;
+  background: transparent;
+}
+
+body.light .account {
+  background: #fff;
+  border: 1px solid #ddd;
 }
 
 .account.selected-delete {
@@ -143,6 +160,7 @@ body.light .choice .loss { color: #8a0018; }
 
 body.light .side-menu {
   background: #f4f6fb;
+  color: #000;
 }
 
 .overlay {
@@ -190,6 +208,7 @@ body.light .side-menu {
 
 body.light .modal {
   background: #fff;
+  color: #000;
 }
 
 input[type="number"] {
@@ -224,11 +243,12 @@ label {
   top: 60px;
   right: 14px;
   font-size: 12px;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 20px;
-  background: rgba(42, 92, 255, 0.2);
-  color: #2a5cff;
+  background: rgba(42, 92, 255, 0.9);
+  color: #fff;
   z-index: 100;
+  font-weight: 600;
 }
 ```
 
@@ -355,13 +375,16 @@ label {
 
   <div id="overlay" class="overlay hidden"></div>
 
-  <script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
     // Initialize Supabase
-    const { createClient } = supabase;
     const supabaseClient = createClient(
       'https://hsdodaomxamnoygjnvng.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzZG9kYW9teGFtbm95Z2pudm5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4NTU3MjgsImV4cCI6MjA4MzQzMTcyOH0.UARnjJbFxHSjr5EFGunmLFgA-t2yjYNMHpUxlGH7XN0'
     );
+
+    console.log('Supabase initialized:', supabaseClient);
 
     const $ = id => document.getElementById(id);
 
@@ -383,11 +406,12 @@ label {
       const status = $("syncStatus");
       status.innerText = message;
       status.classList.remove("hidden");
-      setTimeout(() => status.classList.add("hidden"), 2000);
+      setTimeout(() => status.classList.add("hidden"), 3000);
     }
 
     async function saveToSupabase(entry) {
       try {
+        console.log('Attempting to save to Supabase:', entry);
         showSync("☁️ Saving to cloud...");
         
         const { data, error } = await supabaseClient
@@ -408,14 +432,21 @@ label {
             pips: entry.pips,
             percentage: entry.percentage,
             updated_at: entry.updatedAt
-          }]);
+          }])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase error:', error);
+          throw error;
+        }
+        
+        console.log('Saved successfully:', data);
         showSync("✅ Saved to cloud!");
         return true;
       } catch (error) {
         console.error('Error saving to Supabase:', error);
         showSync("⚠️ Saved locally only");
+        alert('Cloud sync failed. Check console for details. Data saved locally.');
         return false;
       }
     }
